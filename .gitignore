@@ -1,0 +1,13 @@
+# Listas geradas contêm dados de contato: nunca publicar.
+leads_*.csv
+leads_*.xlsx
+*.csv
+*.xlsx
+nao-contatar*.txt
+
+# Python
+__pycache__/
+*.pyc
+
+# Pacotes gerados para a página Releases
+dist/

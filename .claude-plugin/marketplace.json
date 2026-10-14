@@ -1,0 +1,18 @@
+{
+  "name": "skills-conteudo-publico",
+  "owner": {
+    "name": "Jefferson Bandeira Baptista"
+  },
+  "metadata": {
+    "description": "Skills gratuitas para o Claude, em português, que usam só conteúdo público.",
+    "version": "1.0.0"
+  },
+  "plugins": [
+    {
+      "name": "busca-empresas",
+      "source": "./plugins/busca-empresas",
+      "description": "Lista de leads de empresas por ramo e cidade no Brasil, só com fontes públicas e gratuitas, com aviso de LGPD.",
+      "version": "1.0.0"
+    }
+  ]
+}
