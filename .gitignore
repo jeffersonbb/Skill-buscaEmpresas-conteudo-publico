@@ -4,6 +4,8 @@ leads_*.xlsx
 *.csv
 *.xlsx
 nao-contatar*.txt
+# Relatórios de investigação contêm dados pessoais: nunca publicar.
+investigacao_*.md
 
 # Python
 __pycache__/

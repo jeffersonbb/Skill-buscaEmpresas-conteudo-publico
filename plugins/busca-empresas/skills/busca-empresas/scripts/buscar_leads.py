@@ -38,7 +38,7 @@ import urllib.robotparser
 import zipfile
 from xml.sax.saxutils import escape
 
-VERSAO = "1.0.0"
+VERSAO = "1.0.1"
 REPO = "https://github.com/jeffersonbb/Skill-buscaEmpresas-conteudo-publico"
 UA = f"Mozilla/5.0 (compatible; busca-empresas/{VERSAO}; +{REPO})"
 

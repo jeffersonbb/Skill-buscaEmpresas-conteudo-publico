@@ -1,0 +1,12 @@
+{
+  "name": "investiga-empresa",
+  "version": "1.0.0",
+  "description": "Levantamento de uma empresa ou de um sócio no Brasil (sócios, outras empresas de cada sócio, LinkedIn e menções na web), só com fontes públicas e gratuitas, com cuidados de LGPD.",
+  "author": {
+    "name": "Jefferson Bandeira Baptista"
+  },
+  "homepage": "https://github.com/jeffersonbb/Skill-buscaEmpresas-conteudo-publico",
+  "repository": "https://github.com/jeffersonbb/Skill-buscaEmpresas-conteudo-publico",
+  "license": "MIT",
+  "keywords": ["osint", "cnpj", "socios", "due-diligence", "lgpd", "brasil"]
+}

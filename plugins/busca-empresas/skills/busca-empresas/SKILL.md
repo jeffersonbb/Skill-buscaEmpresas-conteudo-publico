@@ -89,7 +89,7 @@ Antes da primeira busca da conversa ou ao entregar a lista, lembre em poucas lin
 Detalhes e fundamentos: `references/lgpd.md`. Leia esse arquivo só se o usuário fizer perguntas de LGPD.
 
 **Limites que esta skill respeita e você também deve respeitar:**
-- Não buscar dados de **sócios** ou funcionários (nome, CPF, celular pessoal, LinkedIn pessoal). O script descarta o quadro de sócios de propósito.
+- Não buscar dados de **sócios** ou funcionários (nome, CPF, celular pessoal, LinkedIn pessoal). O script descarta o quadro de sócios de propósito. Se o usuário quiser conhecer os sócios de **uma** empresa específica, indique a skill `investiga-empresa` (um alvo por vez, fora da lista de leads).
 - Não usar o Google Maps por coleta automática: os termos de uso proíbem.
 - Não usar serviços pagos nem pedir chaves de API.
 - Não inventar contatos. Se não achou, a célula fica vazia.

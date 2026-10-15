@@ -1,5 +1,20 @@
 # Novidades
 
+## 1.1.0 (2026-10-15)
+
+Nova skill **`investiga-empresa`** (1.0.0): levantamento de uma empresa ou de um sócio, um alvo por vez.
+
+- Pelo CNPJ: dados cadastrais, quadro de sócios e administradores e as outras empresas de cada sócio (ativas e baixadas, com cargo e data de entrada).
+- Pelo nome da empresa: encontra os CNPJs candidatos.
+- Pelo nome de uma pessoa: empresas em que ela é sócia, separando homônimos pelo CPF parcial da base aberta. Mais preciso com o CNPJ de uma empresa dela ou o CPF.
+- Links públicos da web (LinkedIn da empresa e possíveis perfis dos sócios, notícias), sem coletar o LinkedIn.
+- Fontes: minhareceita.org e a API aberta da CNPJá (reserva e e-mails), mais o DuckDuckGo. Tudo gratuito.
+- Relatório em Markdown com a finalidade do levantamento no topo (`--finalidade`) e aviso de uso restrito. CPF e endereço completo de MEI nunca aparecem.
+
+README: novo passo a passo para instalar o Claude Code (Windows, Mac e Linux) e o Python.
+
+`busca-empresas` 1.0.1: indica a `investiga-empresa` quando o usuário pede os sócios de uma empresa.
+
 ## 1.0.0 (2026-10-14)
 
 Primeira versão.
