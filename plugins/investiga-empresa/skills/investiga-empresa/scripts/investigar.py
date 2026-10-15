@@ -8,12 +8,15 @@ Um alvo por vez. Não gera lista de leads (para isso existe a skill busca-empres
 Fontes:
   1. Minha Receita (minhareceita.org): dados abertos de CNPJ da Receita Federal,
      inclusive o quadro de sócios (QSA) e a busca pelo CPF parcial do sócio.
-  2. CNPJá, API aberta (open.cnpja.com): reserva e complemento (e-mails, data de
+  2. BrasilAPI (brasilapi.com.br): reserva do CNPJ (repete a minhareceita, com cache
+     de 24 horas) e situação do domínio .br do site no registro.br.
+  3. CNPJá, API aberta (open.cnpja.com): reserva e complemento (e-mails, data de
      atualização). Limite de 5 consultas por minuto, sem cadastro.
-  3. DuckDuckGo (versões simples): links públicos (site, LinkedIn, notícias).
+  4. DuckDuckGo (versões simples): links públicos (site, LinkedIn, notícias).
      Os links não são visitados: só o título do resultado é registrado.
 
-Não usa chave de API, cadastro nem serviço pago. Só a biblioteca padrão do Python.
+Não usa chave de API, cadastro nem serviço pago (regra do projeto: só fontes livres de
+cadastro). Só a biblioteca padrão do Python.
 
 Exemplos:
   python investigar.py --cnpj 33.000.167/0001-01 --finalidade "preparar reunião comercial"
@@ -44,7 +47,7 @@ import zipfile
 from pathlib import Path
 from xml.sax.saxutils import escape, quoteattr
 
-VERSAO = "1.0.1"
+VERSAO = "1.0.2"
 REPO = "https://github.com/jeffersonbb/Skill-buscaEmpresas-conteudo-publico"
 UA = f"Mozilla/5.0 (compatible; investiga-empresa/{VERSAO}; +{REPO})"
 UA_BUSCA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"
@@ -58,6 +61,7 @@ PAUSA_BUSCA = 6             # segundos entre consultas ao DuckDuckGo
 
 FONTE_RECEITA = "Receita Federal (via minhareceita.org)"
 FONTE_CNPJA = "Receita Federal (via API aberta da CNPJá)"
+FONTE_BRASILAPI = "Receita Federal (via BrasilAPI)"
 
 # Sites que só repetem o cadastro do CNPJ: não contam como menção.
 DIRETORIOS = (
@@ -182,14 +186,18 @@ def _de_cnpja(d):
 
 
 def consultar_cnpj(cnpj):
-    """Busca um CNPJ na minhareceita; se falhar, na API aberta da CNPJá."""
+    """Busca um CNPJ na minhareceita; se falhar, na BrasilAPI (cache) e depois na CNPJá."""
     cnpj = so_digitos(cnpj)
-    try:
-        emp = http_json(f"https://minhareceita.org/{cnpj}", timeout=40, tentativas=2)
-        emp["_fonte"] = FONTE_RECEITA
-        return emp
-    except (RuntimeError, json.JSONDecodeError) as e:
-        avisar(f"minhareceita indisponível para {cnpj} ({e}); tentando a CNPJá")
+    for url, fonte in ((f"https://minhareceita.org/{cnpj}", FONTE_RECEITA),
+                       (f"https://brasilapi.com.br/api/cnpj/v1/{cnpj}", FONTE_BRASILAPI)):
+        try:
+            emp = http_json(url, timeout=40, tentativas=2)
+            if emp.get("cnpj"):
+                emp["_fonte"] = fonte
+                return emp
+        except (RuntimeError, json.JSONDecodeError):
+            pass
+    avisar(f"minhareceita e BrasilAPI indisponíveis para {cnpj}; tentando a CNPJá")
     try:
         emp = _de_cnpja(http_json(f"https://open.cnpja.com/office/{cnpj}", timeout=40, tentativas=1))
         emp["_fonte"] = FONTE_CNPJA
@@ -243,6 +251,26 @@ def empresas_do_socio(mascara, nome):
         if lidos >= MAX_REGISTROS_SOCIO:
             return list(achados.values()), True
         time.sleep(1)
+
+
+# ---------------------------------------------------------------- BrasilAPI (sem cadastro)
+
+_dominios, _ddds = {}, {}
+
+
+def dominio_br(site):
+    """Situação de um domínio .br no registro.br, via BrasilAPI. None se não for .br ou se falhar."""
+    host = urllib.parse.urlparse(site if "://" in site else "https://" + site).netloc.lower()
+    host = host[4:] if host.startswith("www.") else host
+    if not host.endswith(".br"):
+        return None
+    if host not in _dominios:
+        try:
+            _dominios[host] = json.loads(http_get(f"https://brasilapi.com.br/api/registrobr/v1/{host}",
+                                                  timeout=20, tentativas=1)[1])
+        except (RuntimeError, json.JSONDecodeError):
+            _dominios[host] = None
+    return _dominios[host]
 
 
 # ---------------------------------------------------------------- Web
@@ -324,6 +352,28 @@ def web_empresa(emp, cidade):
         else:
             links["outros"].append((url, titulo))
     return {k: v[:4] for k, v in links.items()}
+
+
+def site_provavel(emp, outros):
+    """Domínio do e-mail corporativo; senão, o primeiro resultado da web que não é rede nem diretório."""
+    gratis = ("gmail.", "hotmail.", "outlook.", "yahoo.", "bol.", "uol.", "terra.", "live.", "icloud.", "ig.com")
+    for email in (emp.get("email") or "").lower().split(","):
+        dom = email.strip().split("@")[-1] if "@" in email else ""
+        if dom and not dom.startswith(gratis):
+            return dom
+    return urllib.parse.urlparse(outros[0][0]).netloc if outros else None
+
+
+def linha_dominio(site):
+    reg = dominio_br(site)
+    if not reg:
+        return None
+    if reg.get("status") != "REGISTERED":
+        return f"**Domínio {site}:** não registrado ou vencido no registro.br"
+    vence = (reg.get("expires-at") or "")[:10]
+    dns = ", ".join(reg.get("hosts") or [])
+    return (f"**Domínio {reg.get('fqdn') or site}:** registrado no registro.br"
+            f"{', vence em ' + vence if vence else ''}{'; servidores DNS: ' + dns if dns else ''}")
 
 
 def cita_pessoa(nome, *textos):
@@ -643,14 +693,19 @@ def modo_cnpj(args):
         ["Cadastro atualizado em", emp.get("_atualizado") or ""],
     ])
 
-    web_bloqueada = False
+    web_bloqueada, outros = False, []
     if not args.sem_web:
         try:
             w = web_empresa(emp, emp.get("municipio") or "")
+            outros = w["outros"]
             linhas += ["", "### Na web (não confirmado)", "", "**LinkedIn da empresa**", *links_md(w["linkedin"]),
                        "", "**Redes sociais**", *links_md(w["redes"]), "", "**Outros resultados**", *links_md(w["outros"])]
         except BuscaBloqueada:
             web_bloqueada = True
+    site = site_provavel(emp, outros)
+    dom = linha_dominio(site) if site else None
+    if dom:
+        linhas += ["", dom]
 
     qsa = emp.get("qsa") or []
     linhas += ["", f"## Sócios e administradores ({len(qsa)})", ""]
@@ -694,6 +749,8 @@ def modo_cnpj(args):
     fontes = [emp["_fonte"]]
     if not args.sem_web:
         fontes.append("Busca no DuckDuckGo (só títulos e links; os sites não foram visitados)")
+    if dom:
+        fontes.append("BrasilAPI: situação do domínio .br no registro.br")
     caminho = salvar(args.saida, nome, linhas + rodape(hoje, fontes))
 
     print("RESUMO")

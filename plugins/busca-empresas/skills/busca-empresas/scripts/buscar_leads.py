@@ -39,7 +39,7 @@ import zipfile
 from pathlib import Path
 from xml.sax.saxutils import escape
 
-VERSAO = "1.0.2"
+VERSAO = "1.0.3"
 REPO = "https://github.com/jeffersonbb/Skill-buscaEmpresas-conteudo-publico"
 UA = f"Mozilla/5.0 (compatible; busca-empresas/{VERSAO}; +{REPO})"
 
@@ -207,6 +207,37 @@ def eh_celular(num):
 def eh_pessoa_fisica(emp):
     nat = normalizar(emp.get("natureza_juridica"))
     return bool(emp.get("opcao_pelo_mei")) or "empresario (individual)" in nat or "empresario individual" in nat
+
+
+# ---------------------------------------------------------------- BrasilAPI (sem cadastro)
+
+_dominios, _ddds = {}, {}
+
+
+def dominio_br(site):
+    """Situação de um domínio .br no registro.br, via BrasilAPI. None se não for .br ou se falhar."""
+    host = urllib.parse.urlparse(site if "://" in site else "https://" + site).netloc.lower()
+    host = host[4:] if host.startswith("www.") else host
+    if not host.endswith(".br"):
+        return None
+    if host not in _dominios:
+        try:
+            _dominios[host] = json.loads(http_get(f"https://brasilapi.com.br/api/registrobr/v1/{host}",
+                                                  timeout=20, tentativas=1)[1])
+        except (RuntimeError, json.JSONDecodeError):
+            _dominios[host] = None
+    return _dominios[host]
+
+
+def cidades_do_ddd(ddd):
+    """Cidades atendidas por um DDD (BrasilAPI). Lista vazia se falhar."""
+    if ddd not in _ddds:
+        try:
+            dados = json.loads(http_get(f"https://brasilapi.com.br/api/ddd/v1/{ddd}", timeout=20, tentativas=1)[1])
+            _ddds[ddd] = [normalizar(c) for c in dados.get("cities") or []]
+        except (RuntimeError, json.JSONDecodeError):
+            _ddds[ddd] = []
+    return _ddds[ddd]
 
 
 # ---------------------------------------------------------------- Web
@@ -386,6 +417,12 @@ def adicionar_fonte(linha, fonte):
 
 def visitar_site(linha, site, anotar=True):
     """Devolve True se o site foi confirmado como da empresa e os contatos foram lidos."""
+    reg = dominio_br(site)
+    if reg and reg.get("status") != "REGISTERED":
+        # Domínio .br livre ou vencido: o site não é mais da empresa (ou nunca foi).
+        if anotar:
+            linha["Observações"] = juntar(linha["Observações"], f"Domínio não registrado ou vencido: {site}")
+        return False
     achados = raspar_site(site)
     if not achados["textos"]:
         if anotar:
@@ -471,6 +508,12 @@ def montar_linha(emp, cidade, hoje):
     if emp.get("complemento"):
         end += f" - {emp['complemento']}"
     c = emp["cnpj"]
+    obs = ["Dados de pessoa física: cuidado redobrado (LGPD)."] if pf else []
+    alvo = normalizar(cidade)
+    for n in fones:
+        cidades = cidades_do_ddd(n[:2])
+        if cidades and alvo not in cidades:
+            obs.append(f"Telefone com DDD {n[:2]}, de outra região: pode estar desatualizado.")
     return {
         "Nome": (emp.get("nome_fantasia") or razao).title(),
         "Razão social": razao,
@@ -493,7 +536,7 @@ def montar_linha(emp, cidade, hoje):
         "Facebook": "",
         "Fontes": FONTE_RECEITA,
         "Data da coleta": hoje,
-        "Observações": "Dados de pessoa física: cuidado redobrado (LGPD)." if pf else "",
+        "Observações": " ".join(obs),
     }
 
 
@@ -509,7 +552,8 @@ def texto_sobre(pedido, hoje):
         ["Receita Federal", "Dados abertos do CNPJ, consultados via minhareceita.org (projeto aberto e gratuito)"],
         ["Busca web", "DuckDuckGo ou a busca do próprio Claude, só para achar o site e as redes sociais da empresa"],
         ["Site da empresa", "Página inicial e de contato, respeitando o robots.txt do site"],
-        ["Não usado", "Google Maps (os termos de uso proíbem coleta automática), serviços pagos e chaves de API"],
+        ["BrasilAPI", "brasilapi.com.br: situação do domínio .br no registro.br e cidades de cada DDD (sem cadastro)"],
+        ["Não usado", "Google Maps (os termos de uso proíbem coleta automática), serviços pagos, chaves de API e qualquer fonte que exija cadastro"],
         [""],
         ["LGPD: LEIA ANTES DE USAR"],
         ["1", "Quem usa esta lista é o CONTROLADOR dos dados (LGPD, art. 5º, VI) e responde pelo uso que fizer dela."],

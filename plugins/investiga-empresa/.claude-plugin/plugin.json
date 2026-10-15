@@ -1,6 +1,6 @@
 {
   "name": "investiga-empresa",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Levantamento de uma empresa ou de um sócio no Brasil (sócios, outras empresas de cada sócio, LinkedIn e menções na web), só com fontes públicas e gratuitas, com cuidados de LGPD.",
   "author": {
     "name": "Jefferson Bandeira Baptista"

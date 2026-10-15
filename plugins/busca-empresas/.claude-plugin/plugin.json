@@ -1,6 +1,6 @@
 {
   "name": "busca-empresas",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "Lista de leads de empresas por ramo e cidade no Brasil, só com fontes públicas e gratuitas (IBGE, CNPJ da Receita, busca web e site da empresa), com aviso de LGPD.",
   "author": {
     "name": "Jefferson Bandeira Baptista"

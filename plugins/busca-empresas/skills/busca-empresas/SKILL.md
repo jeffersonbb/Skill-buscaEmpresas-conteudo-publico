@@ -50,7 +50,8 @@ O que o script faz, em ordem:
 3. Prioriza as que têm telefone e nome fantasia.
 4. Para cada uma, busca o site e as redes no DuckDuckGo e visita o site (respeitando o robots.txt) para achar e-mail e link de WhatsApp.
 5. **Só aceita um site se ele citar a cidade, o CNPJ ou o telefone da empresa.** Sites com nome parecido mas sem essa confirmação vão para "Observações" como "não confirmado", porque há muitas empresas homônimas em outras cidades.
-6. Grava `.xlsx` (aba "Leads" e aba "Fontes e LGPD") e `.csv`.
+6. Pula sites com domínio `.br` livre ou vencido no registro.br e marca em "Observações" os telefones com DDD de outra região (os dois via BrasilAPI, sem cadastro).
+7. Grava `.xlsx` (aba "Leads" e aba "Fontes e LGPD") e `.csv`.
 
 ### 3. Se a busca web for bloqueada
 
@@ -91,7 +92,7 @@ Detalhes e fundamentos: `references/lgpd.md`. Leia esse arquivo só se o usuári
 **Limites que esta skill respeita e você também deve respeitar:**
 - Não buscar dados de **sócios** ou funcionários (nome, CPF, celular pessoal, LinkedIn pessoal). O script descarta o quadro de sócios de propósito. Se o usuário quiser conhecer os sócios de **uma** empresa específica, indique a skill `investiga-empresa` (um alvo por vez, fora da lista de leads).
 - Não usar o Google Maps por coleta automática: os termos de uso proíbem.
-- Não usar serviços pagos nem pedir chaves de API.
+- Não usar serviços pagos nem fontes que peçam chave, conta ou cadastro.
 - Não inventar contatos. Se não achou, a célula fica vazia.
 
 ## Limitações conhecidas

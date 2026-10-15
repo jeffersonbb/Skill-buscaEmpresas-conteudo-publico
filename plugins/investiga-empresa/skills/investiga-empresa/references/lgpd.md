@@ -58,12 +58,13 @@ Se um sócio perguntar o que você tem sobre ele:
 | Fonte | Natureza | Observação |
 |---|---|---|
 | Receita Federal, dados abertos do CNPJ | Publicação oficial (Lei de Acesso à Informação e política de dados abertos) | Consultada pela API gratuita minhareceita.org |
+| BrasilAPI | Projeto aberto e gratuito, sem cadastro | Reserva do CNPJ e situação do domínio .br no registro.br |
 | CNPJá, API aberta | Serviço gratuito sobre os mesmos dados oficiais | Sem cadastro; limite de 5 consultas por minuto |
 | DuckDuckGo | Buscador público | Só títulos e links; as páginas não são coletadas |
 
 **Não usadas:**
 - coleta automática do LinkedIn, Instagram, Facebook ou Google Maps (os termos de uso proíbem);
 - bases compradas;
-- serviços pagos.
+- serviços pagos ou que exijam cadastro, chave ou conta.
 
 > Este material é orientativo e não substitui a análise do seu encarregado (DPO) ou advogado.

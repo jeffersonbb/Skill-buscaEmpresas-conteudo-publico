@@ -1,6 +1,6 @@
 # Busca de empresas com conteúdo público
 
-Skills gratuitas para o **Claude**, em português, que usam só fontes públicas e gratuitas:
+Skills gratuitas para o **Claude**, em português, que usam só fontes públicas, gratuitas e **sem cadastro** (nenhuma chave, conta ou e-mail para configurar):
 
 | Skill | Para quê |
 |---|---|
@@ -38,6 +38,7 @@ Só entram empresas com **situação cadastral ativa**. A planilha tem uma segun
 | [Dados abertos do CNPJ, Receita Federal](https://www.gov.br/receitafederal/pt-br/assuntos/orientacao-tributaria/cadastros/consultas/dados-publicos-cnpj), consultados pela API gratuita [minhareceita.org](https://minhareceita.org) | Lista de empresas, situação cadastral, telefone, endereço |
 | [DuckDuckGo](https://duckduckgo.com) | Encontrar o site e as redes sociais de cada empresa |
 | Site da própria empresa | E-mail, link de WhatsApp e redes. O robots.txt é respeitado |
+| [BrasilAPI](https://brasilapi.com.br) | Confere se o domínio `.br` do site está registrado e se o DDD do telefone é da cidade |
 
 **O que NÃO é usado:**
 - Google Maps por coleta automática (os termos de uso do Google proíbem);
@@ -90,7 +91,8 @@ Como a base aberta mostra só parte do CPF do sócio, e essa parte se repete ent
 
 **Fontes (todas gratuitas):**
 - [dados abertos do CNPJ](https://www.gov.br/receitafederal/pt-br/assuntos/orientacao-tributaria/cadastros/consultas/dados-publicos-cnpj), pela [minhareceita.org](https://minhareceita.org);
-- a [API aberta da CNPJá](https://cnpja.com/api/open), sem cadastro, com limite de 5 consultas por minuto, usada como reserva e para e-mails;
+- a [BrasilAPI](https://brasilapi.com.br), como reserva do CNPJ e para conferir o domínio `.br` do site no registro.br;
+- a [API aberta da CNPJá](https://cnpja.com/api/open), com limite de 5 consultas por minuto, usada como reserva e para e-mails;
 - o DuckDuckGo (só títulos e links; o LinkedIn **não** é coletado).
 
 **LGPD:** nomes, cargos e vínculos societários de pessoas físicas são dados pessoais, mesmo públicos. Use só para uma finalidade concreta (reunião, due diligence, avaliar parceiro), com base no **legítimo interesse**. Não repasse o relatório e apague quando não precisar mais. A skill recusa investigações em massa e não levanta vida pessoal; CPF e endereço completo de MEI não aparecem. Guia: [`plugins/investiga-empresa/skills/investiga-empresa/references/lgpd.md`](plugins/investiga-empresa/skills/investiga-empresa/references/lgpd.md).
@@ -281,6 +283,7 @@ Novas skills serão adicionadas em `plugins/` e listadas no `marketplace.json`.
 - [minha-receita](https://codeberg.org/cuducos/minha-receita), de Eduardo Cuducos: API aberta dos dados do CNPJ.
 - [IBGE](https://servicodados.ibge.gov.br/api/docs): APIs de localidades e CNAE.
 - [CNPJá](https://cnpja.com/api/open): API aberta de consulta de CNPJ.
+- [BrasilAPI](https://github.com/BrasilAPI/BrasilAPI): APIs abertas de CNPJ, registro.br e DDD.
 
 ## Licença
 

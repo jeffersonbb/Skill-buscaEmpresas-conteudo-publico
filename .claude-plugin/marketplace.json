@@ -4,21 +4,21 @@
     "name": "Jefferson Bandeira Baptista"
   },
   "metadata": {
-    "description": "Skills gratuitas para o Claude, em português, que usam só conteúdo público.",
-    "version": "1.1.1"
+    "description": "Skills gratuitas para o Claude, em português, que usam só conteúdo público e fontes sem cadastro.",
+    "version": "1.1.2"
   },
   "plugins": [
     {
       "name": "busca-empresas",
       "source": "./plugins/busca-empresas",
       "description": "Lista de leads de empresas por ramo e cidade no Brasil, só com fontes públicas e gratuitas, com aviso de LGPD.",
-      "version": "1.0.2"
+      "version": "1.0.3"
     },
     {
       "name": "investiga-empresa",
       "source": "./plugins/investiga-empresa",
       "description": "Levantamento de uma empresa ou de um sócio: quem são os sócios, em que outras empresas cada um aparece e links públicos (LinkedIn, notícias), só com fontes públicas e gratuitas e cuidados de LGPD.",
-      "version": "1.0.1"
+      "version": "1.0.2"
     }
   ]
 }

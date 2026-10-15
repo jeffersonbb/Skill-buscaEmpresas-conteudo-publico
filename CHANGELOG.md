@@ -1,5 +1,16 @@
 # Novidades
 
+## 1.1.2 (2026-10-15)
+
+Regra do projeto: **só fontes livres de cadastro** (nada de chave, conta ou e-mail).
+
+- `investiga-empresa` 1.0.2:
+  - a BrasilAPI entra como reserva do CNPJ, entre a minhareceita e a CNPJá;
+  - o relatório mostra a situação do domínio `.br` da empresa no registro.br (vencimento e servidores DNS).
+- `busca-empresas` 1.0.3:
+  - pula sites com domínio `.br` livre ou vencido;
+  - marca telefones com DDD de outra região, que podem estar desatualizados.
+
 ## 1.1.1 (2026-10-15)
 
 - `investiga-empresa` 1.0.1:

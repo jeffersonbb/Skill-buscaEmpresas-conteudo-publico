@@ -1,6 +1,6 @@
 ---
 name: investiga-empresa
-description: Levantamento minucioso de UMA empresa ou de UM sócio no Brasil, só com fontes públicas e gratuitas (dados abertos do CNPJ via minhareceita.org, API aberta da CNPJá e busca web). Mostra os dados cadastrais, quem são os sócios e administradores, em que outras empresas cada sócio aparece e links públicos (LinkedIn, notícias), num relatório em Word (.docx). Use quando o usuário quiser "conhecer uma empresa", "quem são os sócios da empresa X", "de quais empresas Fulano é sócio", "levantamento da empresa", "due diligence", "OSINT de empresa", "vou fazer uma apresentação na empresa X", "perfil dos sócios" ou "o sócio tem LinkedIn?". Não serve para listas de leads (para isso, use a busca-empresas).
+description: Levantamento minucioso de UMA empresa ou de UM sócio no Brasil, só com fontes públicas, gratuitas e sem cadastro (dados abertos do CNPJ via minhareceita.org, BrasilAPI, API aberta da CNPJá e busca web). Mostra os dados cadastrais, quem são os sócios e administradores, em que outras empresas cada sócio aparece e links públicos (LinkedIn, notícias), num relatório em Word (.docx). Use quando o usuário quiser "conhecer uma empresa", "quem são os sócios da empresa X", "de quais empresas Fulano é sócio", "levantamento da empresa", "due diligence", "OSINT de empresa", "vou fazer uma apresentação na empresa X", "perfil dos sócios" ou "o sócio tem LinkedIn?". Não serve para listas de leads (para isso, use a busca-empresas).
 ---
 
 # Investigação de empresa ou sócio (fontes públicas e gratuitas)
@@ -61,7 +61,7 @@ A base aberta mostra só 6 dígitos do CPF do sócio, e esse CPF parcial se repe
 O script imprime um **RESUMO** curto e grava dois arquivos: `investigacao_<alvo>_<data>.docx`, que é o relatório para o usuário, e o `.md` de mesmo nome, que é a fonte editável. Use o RESUMO. Abra o `.md` só para responder ao que o usuário perguntar ou para escrever o perfil (passo 3).
 
 - `BUSCA_WEB_BLOQUEADA`: o DuckDuckGo limitou as consultas. O relatório sai sem parte dos links. Ofereça rodar de novo mais tarde.
-- Se a minhareceita estiver fora do ar, o script tenta a API aberta da CNPJá (5 consultas por minuto). A busca de outras empresas do sócio depende da minhareceita; se ela falhar, a seção fica marcada como não consultada.
+- Se a minhareceita estiver fora do ar, o script tenta a BrasilAPI (que guarda consultas recentes por 24 horas) e depois a API aberta da CNPJá (5 consultas por minuto). A busca de outras empresas do sócio depende da minhareceita; se ela falhar, a seção fica marcada como não consultada.
 
 ### 3. Perfil dos sócios (só se o usuário pedir)
 
@@ -96,6 +96,7 @@ Detalhes e fundamentos: `references/lgpd.md`. Leia esse arquivo só se o usuári
 - Nunca mostrar CPF (nem o parcial) no relatório. Endereço completo de MEI e empresário individual é omitido, porque pode ser residencial.
 - Nada de vida pessoal: família, endereço de casa, telefone pessoal, dados sensíveis (art. 5º, II).
 - Sem coleta automática do LinkedIn ou de outras redes; sem serviços pagos; sem bases compradas.
+- **Só fontes livres de cadastro.** Não sugira nem use fontes que peçam chave, conta ou e-mail (ex.: API do Portal da Transparência, CNPJá paga), para que qualquer pessoa use a skill sem configurar nada.
 - Não inventar vínculos. Se não achou, diga que não achou.
 
 ## Limitações conhecidas
@@ -104,4 +105,5 @@ Detalhes e fundamentos: `references/lgpd.md`. Leia esse arquivo só se o usuári
 - MEI e empresário individual não têm quadro de sócios na base aberta.
 - Sócios estrangeiros e sócios sem CPF na base não têm outras empresas pesquisadas.
 - A busca só pelo nome depende de a web citar o CNPJ de uma empresa da pessoa. Nomes muito comuns geram homônimos.
-- A API aberta da CNPJá tem limite de 5 consultas por minuto. A versão paga, com mais recursos, ainda não é suportada.
+- A API aberta da CNPJá tem limite de 5 consultas por minuto.
+- O domínio do site é conferido no registro.br (via BrasilAPI) só para endereços `.br`.
