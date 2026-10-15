@@ -35,11 +35,11 @@ Se aparecer mais de uma atividade, mostre as opções ao usuário e pergunte qua
 ### 2. Rodar a busca
 
 ```bash
-python scripts/buscar_leads.py --cidade "Taquara" --uf RS --ramo contabilidade --qtd 20 --saida "<pasta>"
+python scripts/buscar_leads.py --cidade "Taquara" --uf RS --ramo contabilidade --qtd 20
 ```
 
 - Use o caminho completo do script (a pasta desta skill). No Windows, se `python` não existir, tente `py`. No Mac ou Linux, `python3`.
-- `--saida`: a pasta onde o usuário quer a planilha. Se ele não disser, use a pasta de trabalho atual e informe o caminho.
+- A planilha vai para a pasta **Documentos/Leads** (criada sozinha). Não pergunte onde salvar: informe o caminho ao entregar. Use `--saida "<pasta>"` só se o usuário pedir outra pasta.
 - `--sem-web`: só dados da Receita (rápido, menos completo). Use se o usuário tiver pressa.
 - `--excluir arquivo.txt`: CNPJs que pediram para não ser contatados (um por linha). Pergunte se o usuário tem essa lista quando ele já tiver feito buscas antes.
 - O script demora: rode com tempo limite de pelo menos 10 minutos.

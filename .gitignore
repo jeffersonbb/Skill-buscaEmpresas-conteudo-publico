@@ -6,6 +6,8 @@ leads_*.xlsx
 nao-contatar*.txt
 # Relatórios de investigação contêm dados pessoais: nunca publicar.
 investigacao_*.md
+investigacao_*.docx
+*.docx
 
 # Python
 __pycache__/

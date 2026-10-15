@@ -15,7 +15,7 @@ Nunca usou o Claude Code? Comece pelo [passo a passo de instalação](#primeiro-
 
 Skill gratuita para o **Claude** que monta listas de leads de empresas brasileiras por **ramo e cidade**, como "20 escritórios de contabilidade em Taquara/RS". Usa **somente fontes públicas e gratuitas** e já vem com orientações de **LGPD**.
 
-Você pede em português e recebe uma planilha Excel (e um CSV) com, quando disponíveis:
+Você pede em português e recebe uma planilha Excel (e um CSV), salva em `Documentos\Leads`, com, quando disponíveis:
 
 | Coluna | De onde vem |
 |---|---|
@@ -78,7 +78,7 @@ Guia completo: [`plugins/busca-empresas/skills/busca-empresas/references/lgpd.md
 
 ## investiga-empresa: conhecer uma empresa ou um sócio
 
-Para preparar uma reunião, uma apresentação ou avaliar um parceiro. **Um alvo por vez**, sem planilha: o resultado é um relatório em Markdown.
+Para preparar uma reunião, uma apresentação ou avaliar um parceiro. **Um alvo por vez**, sem planilha: o resultado é um relatório em **Word (.docx)**, salvo em `Documentos\Investigações`.
 
 | Você informa | Você recebe |
 |---|---|
@@ -107,6 +107,7 @@ Sem Claude, na pasta `plugins/investiga-empresa/skills/investiga-empresa/scripts
 python investigar.py --cnpj 12.345.678/0001-90
 python investigar.py --empresa "Padaria Pão Quente" --cidade Taquara --uf RS
 python investigar.py --socio "Maria da Silva Souza" --cnpj-ref 12345678000190
+python investigar.py --docx investigacao_x.md     # gera o Word de novo depois de editar o .md
 python investigar.py --help
 ```
 

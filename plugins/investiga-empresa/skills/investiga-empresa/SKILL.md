@@ -1,6 +1,6 @@
 ---
 name: investiga-empresa
-description: Levantamento minucioso de UMA empresa ou de UM sócio no Brasil, só com fontes públicas e gratuitas (dados abertos do CNPJ via minhareceita.org, API aberta da CNPJá e busca web). Mostra os dados cadastrais, quem são os sócios e administradores, em que outras empresas cada sócio aparece e links públicos (LinkedIn, notícias), num relatório em Markdown. Use quando o usuário quiser "conhecer uma empresa", "quem são os sócios da empresa X", "de quais empresas Fulano é sócio", "levantamento da empresa", "due diligence", "OSINT de empresa", "vou fazer uma apresentação na empresa X", "perfil dos sócios" ou "o sócio tem LinkedIn?". Não serve para listas de leads (para isso, use a busca-empresas).
+description: Levantamento minucioso de UMA empresa ou de UM sócio no Brasil, só com fontes públicas e gratuitas (dados abertos do CNPJ via minhareceita.org, API aberta da CNPJá e busca web). Mostra os dados cadastrais, quem são os sócios e administradores, em que outras empresas cada sócio aparece e links públicos (LinkedIn, notícias), num relatório em Word (.docx). Use quando o usuário quiser "conhecer uma empresa", "quem são os sócios da empresa X", "de quais empresas Fulano é sócio", "levantamento da empresa", "due diligence", "OSINT de empresa", "vou fazer uma apresentação na empresa X", "perfil dos sócios" ou "o sócio tem LinkedIn?". Não serve para listas de leads (para isso, use a busca-empresas).
 ---
 
 # Investigação de empresa ou sócio (fontes públicas e gratuitas)
@@ -19,12 +19,12 @@ Levantamento de **um alvo por vez**, para conhecer uma empresa ou uma pessoa ant
 
 ### 1. Rodar o script no modo certo
 
-Use o caminho completo do script (a pasta desta skill). No Windows, se `python` não existir, tente `py`. No Mac ou Linux, `python3`. Rode com tempo limite de pelo menos 10 minutos. `--saida` é a pasta do relatório; se o usuário não disser, use a pasta de trabalho atual e informe o caminho.
+Use o caminho completo do script (a pasta desta skill). No Windows, se `python` não existir, tente `py`. No Mac ou Linux, `python3`. Rode com tempo limite de pelo menos 10 minutos. O relatório vai para a pasta **Documentos/Investigações** (criada sozinha). Não pergunte onde salvar: informe o caminho ao entregar. Use `--saida "<pasta>"` só se o usuário pedir outra pasta.
 
 #### Pelo CNPJ (o mais completo)
 
 ```bash
-python scripts/investigar.py --cnpj 33.000.167/0001-01 --finalidade "preparar reunião comercial" --saida "<pasta>"
+python scripts/investigar.py --cnpj 33.000.167/0001-01 --finalidade "preparar reunião comercial"
 ```
 
 Traz os dados cadastrais, o quadro de sócios e administradores, as **outras empresas de cada sócio** (ativas e baixadas, com cargo e data de entrada) e links da web: o LinkedIn e as redes da empresa e possíveis perfis no LinkedIn dos sócios.
@@ -58,7 +58,7 @@ A base aberta mostra só 6 dígitos do CPF do sócio, e esse CPF parcial se repe
 
 ### 2. Ler o resultado
 
-O script imprime um **RESUMO** curto e grava `investigacao_<alvo>_<data>.md`. Use o RESUMO. Abra o relatório só para responder ao que o usuário perguntar ou para escrever o perfil (passo 3).
+O script imprime um **RESUMO** curto e grava dois arquivos: `investigacao_<alvo>_<data>.docx`, que é o relatório para o usuário, e o `.md` de mesmo nome, que é a fonte editável. Use o RESUMO. Abra o `.md` só para responder ao que o usuário perguntar ou para escrever o perfil (passo 3).
 
 - `BUSCA_WEB_BLOQUEADA`: o DuckDuckGo limitou as consultas. O relatório sai sem parte dos links. Ofereça rodar de novo mais tarde.
 - Se a minhareceita estiver fora do ar, o script tenta a API aberta da CNPJá (5 consultas por minuto). A busca de outras empresas do sócio depende da minhareceita; se ela falhar, a seção fica marcada como não consultada.
@@ -69,7 +69,11 @@ Quando o usuário quiser saber "o que a pessoa faz" ou ter o perfil para a reuni
 - Use os títulos dos links do LinkedIn e das menções no relatório. O título de resultado do LinkedIn costuma trazer o cargo atual ("Nome - Cargo - Empresa | LinkedIn").
 - Se precisar de mais, faça **no máximo 2 buscas web por sócio**, focadas na vida profissional (cargo, formação, palestras, entrevistas, prêmios, notícias da empresa).
 - **Não abra nem colete o LinkedIn** por automação: os termos do site proíbem. Só use o que aparece no resultado da busca e sugira ao usuário abrir o perfil por conta própria.
-- Escreva o perfil **no próprio relatório**, numa seção "Perfil profissional" de cada sócio, marcando o que é confirmado (Receita) e o que é provável (web). A finalidade já sai no topo; se o usuário mudar de ideia sobre ela, atualize essa linha.
+- Escreva o perfil **no `.md` do relatório**, numa seção "Perfil profissional" de cada sócio, marcando o que é confirmado (Receita) e o que é provável (web). A finalidade já sai no topo; se o usuário mudar de ideia sobre ela, atualize essa linha. Depois de editar, gere o Word de novo:
+  ```bash
+  python scripts/investigar.py --docx "<caminho do .md>"
+  ```
+- No `.md`, use só o Markdown simples que o conversor entende: títulos `#` a `####`, parágrafos, listas com `- `, tabelas com `|`, `**negrito**`, `_itálico_` e links `[texto](url)`.
 - Ao entregar, deixe claro que os links da web podem ser de homônimos.
 
 ### 4. Apresentar
@@ -77,7 +81,7 @@ Quando o usuário quiser saber "o que a pessoa faz" ou ter o perfil para a reuni
 Responda curto:
 - a empresa, a situação cadastral e quantos sócios tem;
 - para cada sócio, quantas outras empresas tem e o que chama atenção (ex.: consultoria própria, empresas baixadas recentemente, sócio em concorrentes);
-- o caminho do relatório;
+- o caminho do relatório `.docx`;
 - o lembrete de LGPD abaixo, em 2 linhas.
 
 ## LGPD: sempre lembrar

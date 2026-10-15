@@ -36,9 +36,10 @@ import urllib.parse
 import urllib.request
 import urllib.robotparser
 import zipfile
+from pathlib import Path
 from xml.sax.saxutils import escape
 
-VERSAO = "1.0.1"
+VERSAO = "1.0.2"
 REPO = "https://github.com/jeffersonbb/Skill-buscaEmpresas-conteudo-publico"
 UA = f"Mozilla/5.0 (compatible; busca-empresas/{VERSAO}; +{REPO})"
 
@@ -766,6 +767,11 @@ def modo_enriquecer(caminho, sites_informados):
     resumo(leads, base, f" ({len(pendentes)} sites visitados)")
 
 
+def pasta_padrao():
+    docs = Path.home() / "Documents"
+    return str((docs if docs.is_dir() else Path.home()) / "Leads")
+
+
 def main():
     if hasattr(sys.stdout, "reconfigure"):
         sys.stdout.reconfigure(encoding="utf-8")
@@ -779,7 +785,7 @@ def main():
     p.add_argument("--permitir-mais", action="store_true", help=f"Libera até {QTD_ABSOLUTA} empresas (mais demorado)")
     p.add_argument("--sem-web", action="store_true", help="Só dados da Receita, sem busca web nem visita aos sites")
     p.add_argument("--excluir", help="Arquivo .txt com CNPJs que pediram para não ser contatados (um por linha)")
-    p.add_argument("--saida", default=".", help="Pasta onde salvar a planilha (padrão: pasta atual)")
+    p.add_argument("--saida", default=pasta_padrao(), help="Pasta onde salvar a planilha (padrão: Documentos/Leads)")
     p.add_argument("--listar-cnae", metavar="TERMO", help="Só mostra os códigos CNAE que combinam com o termo")
     p.add_argument("--enriquecer", metavar="CSV", help="Visita os sites preenchidos num CSV já gerado e completa os contatos")
     p.add_argument("--site", action="append", metavar="CNPJ=URL", help="Com --enriquecer: informa o site de uma empresa (pode repetir)")

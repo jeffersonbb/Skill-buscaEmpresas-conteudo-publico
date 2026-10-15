@@ -1,5 +1,13 @@
 # Novidades
 
+## 1.1.1 (2026-10-15)
+
+- `investiga-empresa` 1.0.1:
+  - o relatório agora sai em **Word (.docx)**, gerado só com a biblioteca padrão do Python, com uma cópia `.md` editável ao lado (`--docx` gera o Word de novo);
+  - pasta padrão **Documentos/Investigações**, sem precisar perguntar onde salvar;
+  - sites que só listam sócios (ex.: páginas `/socios/`) deixam de aparecer como menções.
+- `busca-empresas` 1.0.2: pasta padrão **Documentos/Leads**.
+
 ## 1.1.0 (2026-10-15)
 
 Nova skill **`investiga-empresa`** (1.0.0): levantamento de uma empresa ou de um sócio, um alvo por vez.

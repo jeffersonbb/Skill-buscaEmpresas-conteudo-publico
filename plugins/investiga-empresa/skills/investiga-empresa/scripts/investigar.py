@@ -21,6 +21,10 @@ Exemplos:
   python investigar.py --socio "Maria da Silva Souza" --cnpj-ref 33000167000101
   python investigar.py --socio "Maria da Silva Souza" --cpf 123.456.789-00
   python investigar.py --socio "Maria da Silva Souza"
+  python investigar.py --docx investigacao_maria-da-silva-souza_2026-10-15.md
+
+O relatório sai em Word (.docx), com uma cópia .md ao lado que pode ser editada
+e convertida de novo com --docx. Pasta padrão: Documentos/Investigações.
 """
 
 import argparse
@@ -36,8 +40,11 @@ import unicodedata
 import urllib.error
 import urllib.parse
 import urllib.request
+import zipfile
+from pathlib import Path
+from xml.sax.saxutils import escape, quoteattr
 
-VERSAO = "1.0.0"
+VERSAO = "1.0.1"
 REPO = "https://github.com/jeffersonbb/Skill-buscaEmpresas-conteudo-publico"
 UA = f"Mozilla/5.0 (compatible; investiga-empresa/{VERSAO}; +{REPO})"
 UA_BUSCA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"
@@ -61,6 +68,7 @@ DIRETORIOS = (
     "situacao-cadastral", "meudinheiroweb", "minhareceita", "duckduckgo", "google.",
     "bing.", "empresaqui", "cnpj.services", "qsa", "socios.", "transparencia.cc",
     "buscadeempresas", "maiscnpj", "antifraudebrasil", "jusbrasil", "escavador", "cnpj.today",
+    "advdinamico", "portaljpa",
 )
 
 
@@ -285,7 +293,8 @@ def busca_web(consulta):
 def eh_diretorio(url):
     """Sites de consulta de CNPJ: estão na lista ou têm um CNPJ no endereço."""
     host = urllib.parse.urlparse(url).netloc.lower()
-    return any(d in host for d in DIRETORIOS) or bool(re.search(r"\d{14}|\d{2}\.\d{3}\.\d{3}", url))
+    return (any(d in host for d in DIRETORIOS) or "/socios/" in url or "/socio/" in url
+            or bool(re.search(r"\d{14}|\d{2}\.\d{3}\.\d{3}", url)))
 
 
 def cnpjs_nos_resultados(resultados):
@@ -382,7 +391,8 @@ def tabela(cabecalho, linhas):
 
 
 def links_md(lista, vazio="nada encontrado"):
-    return [f"- [{celula(t) or u}]({u})" for u, t in lista] or [f"- {vazio}"]
+    return [f"- [{celula(t).replace('[', '(').replace(']', ')') or u}]({u.replace(')', '%29')})"
+            for u, t in lista] or [f"- {vazio}"]
 
 
 def bloco_empresas(achados, excedeu, excluir_raiz=None):
@@ -423,13 +433,183 @@ def rodape(hoje, fontes):
     ]
 
 
+def pasta_padrao():
+    docs = Path.home() / "Documents"
+    return str((docs if docs.is_dir() else Path.home()) / "Investigações")
+
+
 def salvar(pasta, nome, linhas):
+    """Grava o .md (fonte editável) e o .docx (para o usuário). Devolve o caminho do .docx."""
     os.makedirs(pasta, exist_ok=True)
     slug = re.sub(r"[^a-z0-9]+", "-", normalizar(nome)).strip("-")[:50] or "alvo"
     caminho = os.path.join(pasta, f"investigacao_{slug}_{dt.date.today().isoformat()}.md")
     with open(caminho, "w", encoding="utf-8", newline="\n") as f:
         f.write("\n".join(linhas) + "\n")
-    return caminho
+    return md_para_docx(caminho)
+
+
+# ---------------------------------------------------------------- Word (.docx)
+
+W_NS = ('xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" '
+        'xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"')
+ESPACO_CELULA = '<w:spacing w:before="20" w:after="20"/>'
+_INLINE = re.compile(r"\[([^\]]+)\]\(([^)\s]+)\)|\*\*(.+?)\*\*|`([^`]+)`|(?<![\w])_(.+?)_(?![\w])")
+
+
+def _run(texto, negrito=False, italico=False, mono=False, estilo=None, tamanho=None, cor=None):
+    props = ""
+    if estilo:
+        props += f'<w:rStyle w:val="{estilo}"/>'
+    if mono:
+        props += '<w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>'
+    if negrito:
+        props += "<w:b/>"
+    if italico:
+        props += "<w:i/>"
+    if cor:
+        props += f'<w:color w:val="{cor}"/>'
+    if tamanho:
+        props += f'<w:sz w:val="{tamanho}"/>'
+    rpr = f"<w:rPr>{props}</w:rPr>" if props else ""
+    return f'<w:r>{rpr}<w:t xml:space="preserve">{escape(texto)}</w:t></w:r>'
+
+
+def _inline(texto, links, tamanho=None, italico=False, cor=None):
+    """Converte o Markdown simples de uma linha em runs do Word."""
+    out, pos = [], 0
+    for m in _INLINE.finditer(texto):
+        if m.start() > pos:
+            out.append(_run(texto[pos:m.start()], italico=italico, tamanho=tamanho, cor=cor))
+        if m.group(1):
+            links.append(m.group(2))
+            out.append(f'<w:hyperlink r:id="rIdL{len(links)}">'
+                       f'{_run(m.group(1), estilo="Hyperlink", tamanho=tamanho)}</w:hyperlink>')
+        elif m.group(3):
+            out.append(_run(m.group(3), negrito=True, italico=italico, tamanho=tamanho, cor=cor))
+        elif m.group(4):
+            out.append(_run(m.group(4), mono=True, tamanho=tamanho, cor=cor))
+        else:
+            out.append(_run(m.group(5), italico=True, tamanho=tamanho, cor=cor))
+        pos = m.end()
+    if pos < len(texto):
+        out.append(_run(texto[pos:], italico=italico, tamanho=tamanho, cor=cor))
+    return "".join(out)
+
+
+def _par(conteudo, estilo=None, extra=""):
+    ppr = (f'<w:pStyle w:val="{estilo}"/>' if estilo else "") + extra
+    return f'<w:p>{"<w:pPr>" + ppr + "</w:pPr>" if ppr else ""}{conteudo}</w:p>'
+
+
+def _tabela(linhas, links):
+    celulas = [[c.strip() for c in l.strip().strip("|").split("|")] for l in linhas
+               if not re.fullmatch(r"\|?(\s*:?-+:?\s*\|)+\s*", l.strip())]
+    if not celulas:
+        return ""
+    n = max(len(c) for c in celulas)
+    bordas = "".join(f'<w:{b} w:val="single" w:sz="4" w:space="0" w:color="BFBFBF"/>'
+                     for b in ("top", "left", "bottom", "right", "insideH", "insideV"))
+    xml = [f'<w:tbl><w:tblPr><w:tblW w:w="5000" w:type="pct"/><w:tblBorders>{bordas}</w:tblBorders>'
+           '<w:tblCellMar><w:left w:w="70" w:type="dxa"/><w:right w:w="70" w:type="dxa"/></w:tblCellMar>'
+           '<w:tblLook w:val="04A0" w:firstRow="1"/></w:tblPr><w:tblGrid>'
+           + "".join("<w:gridCol/>" for _ in range(n)) + "</w:tblGrid>"]
+    for i, linha in enumerate(celulas):
+        cab = i == 0
+        xml.append("<w:tr>" + ('<w:trPr><w:tblHeader/></w:trPr>' if cab else ""))
+        for c in linha + [""] * (n - len(linha)):
+            sombra = '<w:shd w:val="clear" w:color="auto" w:fill="DCE6F0"/>' if cab else ""
+            corpo = _run(c, negrito=True, tamanho=18) if cab else _inline(c, links, tamanho=18)
+            xml.append(f"<w:tc><w:tcPr>{sombra}</w:tcPr>{_par(corpo, extra=ESPACO_CELULA)}</w:tc>")
+        xml.append("</w:tr>")
+    xml.append("</w:tbl>")
+    return "".join(xml) + _par("")
+
+
+_ESTILOS = """<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<w:styles xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
+<w:docDefaults><w:rPrDefault><w:rPr><w:rFonts w:ascii="Calibri" w:hAnsi="Calibri" w:eastAsia="Calibri" w:cs="Calibri"/>
+<w:sz w:val="21"/><w:lang w:val="pt-BR"/></w:rPr></w:rPrDefault>
+<w:pPrDefault><w:pPr><w:spacing w:after="100" w:line="264" w:lineRule="auto"/></w:pPr></w:pPrDefault></w:docDefaults>
+<w:style w:type="paragraph" w:default="1" w:styleId="Normal"><w:name w:val="Normal"/></w:style>
+<w:style w:type="paragraph" w:styleId="Heading1"><w:name w:val="heading 1"/><w:basedOn w:val="Normal"/><w:next w:val="Normal"/>
+<w:pPr><w:keepNext/><w:spacing w:before="120" w:after="160"/><w:outlineLvl w:val="0"/></w:pPr><w:rPr><w:b/><w:color w:val="1F3864"/><w:sz w:val="36"/></w:rPr></w:style>
+<w:style w:type="paragraph" w:styleId="Heading2"><w:name w:val="heading 2"/><w:basedOn w:val="Normal"/><w:next w:val="Normal"/>
+<w:pPr><w:keepNext/><w:pBdr><w:bottom w:val="single" w:sz="6" w:space="2" w:color="1F3864"/></w:pBdr><w:spacing w:before="320" w:after="100"/><w:outlineLvl w:val="1"/></w:pPr><w:rPr><w:b/><w:color w:val="1F3864"/><w:sz w:val="28"/></w:rPr></w:style>
+<w:style w:type="paragraph" w:styleId="Heading3"><w:name w:val="heading 3"/><w:basedOn w:val="Normal"/><w:next w:val="Normal"/>
+<w:pPr><w:keepNext/><w:spacing w:before="200" w:after="80"/><w:outlineLvl w:val="2"/></w:pPr><w:rPr><w:b/><w:color w:val="2F5496"/><w:sz w:val="24"/></w:rPr></w:style>
+<w:style w:type="paragraph" w:styleId="Heading4"><w:name w:val="heading 4"/><w:basedOn w:val="Normal"/><w:next w:val="Normal"/>
+<w:pPr><w:keepNext/><w:spacing w:before="160" w:after="60"/><w:outlineLvl w:val="3"/></w:pPr><w:rPr><w:b/><w:i/><w:color w:val="2F5496"/></w:rPr></w:style>
+<w:style w:type="character" w:styleId="Hyperlink"><w:name w:val="Hyperlink"/><w:rPr><w:color w:val="0563C1"/><w:u w:val="single"/></w:rPr></w:style>
+</w:styles>"""
+
+
+def md_para_docx(caminho_md):
+    """Converte o Markdown do relatório (subconjunto simples) num .docx, só com a biblioteca padrão."""
+    linhas = open(caminho_md, encoding="utf-8").read().splitlines()
+    corpo, links, i = [], [], 0
+    while i < len(linhas):
+        l = linhas[i].rstrip()
+        if l.startswith("|"):
+            bloco = []
+            while i < len(linhas) and linhas[i].lstrip().startswith("|"):
+                bloco.append(linhas[i])
+                i += 1
+            corpo.append(_tabela(bloco, links))
+            continue
+        i += 1
+        if not l.strip() or l.strip() == "---":
+            continue
+        m = re.match(r"(#{1,4}) (.*)", l)
+        if m:
+            corpo.append(_par(_inline(m.group(2), links), f"Heading{len(m.group(1))}"))
+        elif l.startswith("> "):
+            corpo.append(_par(_inline(l[2:], links, italico=True, cor="595959"),
+                              extra='<w:pBdr><w:left w:val="single" w:sz="12" w:space="6" w:color="BFBFBF"/></w:pBdr>'))
+        elif re.match(r"\s*- ", l):
+            corpo.append(_par("<w:r><w:t>•</w:t></w:r><w:r><w:tab/></w:r>" + _inline(re.sub(r"^\s*- ", "", l), links),
+                              extra='<w:tabs><w:tab w:val="left" w:pos="360"/></w:tabs>'
+                                    '<w:spacing w:after="40"/><w:ind w:left="360" w:hanging="240"/>'))
+        else:
+            corpo.append(_par(_inline(l, links)))
+    secao = ('<w:sectPr><w:pgSz w:w="11906" w:h="16838"/>'
+             '<w:pgMar w:top="1000" w:right="900" w:bottom="1000" w:left="900" w:header="500" w:footer="500" w:gutter="0"/></w:sectPr>')
+    documento = (f'<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<w:document {W_NS}><w:body>'
+                 + "".join(corpo) + secao + "</w:body></w:document>")
+    rels = ['<Relationship Id="rIdS" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>']
+    rels += [f'<Relationship Id="rIdL{n}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/hyperlink" '
+             f'Target={quoteattr(u)} TargetMode="External"/>' for n, u in enumerate(links, 1)]
+    agora = dt.datetime.now(dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    partes = {
+        "[Content_Types].xml": '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n'
+            '<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">'
+            '<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>'
+            '<Default Extension="xml" ContentType="application/xml"/>'
+            '<Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>'
+            '<Override PartName="/word/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.styles+xml"/>'
+            '<Override PartName="/docProps/core.xml" ContentType="application/vnd.openxmlformats-package.core-properties+xml"/>'
+            '</Types>',
+        "_rels/.rels": '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n'
+            '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'
+            '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/>'
+            '<Relationship Id="rId2" Type="http://schemas.openxmlformats.org/package/2006/relationships/metadata/core-properties" Target="docProps/core.xml"/>'
+            '</Relationships>',
+        "docProps/core.xml": '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n'
+            '<cp:coreProperties xmlns:cp="http://schemas.openxmlformats.org/package/2006/metadata/core-properties" '
+            'xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:dcterms="http://purl.org/dc/terms/" '
+            'xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">'
+            f'<dc:title>{escape(linhas[0].lstrip("# ") if linhas else "Investigação")}</dc:title>'
+            '<dc:creator>investiga-empresa</dc:creator>'
+            f'<dcterms:created xsi:type="dcterms:W3CDTF">{agora}</dcterms:created></cp:coreProperties>',
+        "word/_rels/document.xml.rels": '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n'
+            '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' + "".join(rels) + "</Relationships>",
+        "word/styles.xml": _ESTILOS,
+        "word/document.xml": documento,
+    }
+    destino = os.path.splitext(caminho_md)[0] + ".docx"
+    with zipfile.ZipFile(destino, "w", zipfile.ZIP_DEFLATED) as z:
+        for nome, conteudo in partes.items():
+            z.writestr(nome, conteudo)
+    return destino
 
 
 # ---------------------------------------------------------------- Modos
@@ -528,6 +708,7 @@ def modo_cnpj(args):
     if web_bloqueada:
         print("BUSCA_WEB_BLOQUEADA: o DuckDuckGo limitou as consultas; parte dos links ficou de fora")
     print(f"Relatório: {caminho}")
+    print(f"Fonte editável: {os.path.splitext(caminho)[0]}.md")
 
 
 def modo_empresa(args):
@@ -656,6 +837,7 @@ def modo_socio(args):
     if web_bloqueada:
         print("BUSCA_WEB_BLOQUEADA: o DuckDuckGo limitou as consultas; os links da web ficaram de fora")
     print(f"Relatório: {caminho}")
+    print(f"Fonte editável: {os.path.splitext(caminho)[0]}.md")
 
 
 def main():
@@ -667,6 +849,7 @@ def main():
     alvo.add_argument("--cnpj", help="CNPJ da empresa: dados, sócios e as outras empresas de cada sócio")
     alvo.add_argument("--empresa", metavar="NOME", help="Nome da empresa: só procura o CNPJ e lista os candidatos")
     alvo.add_argument("--socio", metavar="NOME", help="Nome completo de uma pessoa: empresas em que ela é sócia")
+    alvo.add_argument("--docx", metavar="MD", help="Só converte de novo um relatório .md (já editado) em .docx")
     p.add_argument("--cidade", help="Com --empresa: ajuda a achar o CNPJ certo")
     p.add_argument("--uf", help="Com --empresa: filtra os candidatos pelo estado")
     p.add_argument("--cnpj-ref", help="Com --socio: CNPJ de uma empresa onde a pessoa é sócia (mais preciso)")
@@ -676,9 +859,11 @@ def main():
                    help=f"Sócios com busca web (padrão {MAX_SOCIOS_WEB}; cada um leva uns 15 segundos)")
     p.add_argument("--sem-web", action="store_true", help="Só dados da Receita, sem busca web")
     p.add_argument("--finalidade", help="Para que serve o levantamento (ex.: preparar reunião comercial); vai no topo do relatório")
-    p.add_argument("--saida", default=".", help="Pasta onde salvar o relatório (padrão: pasta atual)")
+    p.add_argument("--saida", default=pasta_padrao(), help="Pasta onde salvar o relatório (padrão: Documentos/Investigações)")
     args = p.parse_args()
-    if args.cnpj:
+    if args.docx:
+        print(f"Relatório: {md_para_docx(args.docx)}")
+    elif args.cnpj:
         modo_cnpj(args)
     elif args.empresa:
         modo_empresa(args)
